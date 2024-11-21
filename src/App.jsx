@@ -11,6 +11,7 @@ import Reyting from './pages/Reyting';
 import Posts from './pages/Posts';
 import PrivateRoute from './PrivateRoute';
 import Profil from './pages/Profil';
+import About from './pages/Abaut';
 
 
 const App = () => {
@@ -137,6 +138,14 @@ const App = () => {
             element={
               <PrivateRoute guestOnly={false}>
                 <Reyting />
+              </PrivateRoute>
+            }
+          />
+           <Route
+            path="/abaut"
+            element={
+              <PrivateRoute guestOnly={false}>
+                <About />
               </PrivateRoute>
             }
           />

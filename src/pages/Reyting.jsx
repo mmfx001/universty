@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Modal from 'react-modal';
+import { Star } from 'lucide-react';
 
 const Reyting = () => {
     const [users, setUsers] = useState([]);
@@ -8,160 +9,135 @@ const Reyting = () => {
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    // Fetch user data from the API
+    // Foydalanuvchi ma'lumotlarini API dan olish
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const response = await axios.get('https://unversty-2.onrender.com/users');
                 setUsers(response.data);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Ma\'lumotni olishda xato:', error);
             } finally {
-                setLoading(false); // Disable loading state after data is fetched
+                setLoading(false); // Ma'lumotlar olingandan so'ng loading holatini o'chirish
             }
         };
 
         fetchData();
     }, []);
 
-    // Open modal and set selected user
+    // Modal oynasini ochish va foydalanuvchini tanlash
     const openModal = (user) => {
         setSelectedUser(user);
         setModalIsOpen(true);
     };
 
-    // Close modal
+    // Modal oynasini yopish
     const closeModal = () => {
         setModalIsOpen(false);
         setSelectedUser(null);
     };
 
-    // Skeleton loader component
+    // Skeleton loader komponenti
     const SkeletonLoader = () => (
-        <div className="animate-pulse">
-            <div className="grid grid-cols-5 gap-4 p-6 rounded-xl bg-violet-600 shadow-md">
-                <div className="w-16 h-16 rounded-full bg-gray-400"></div>
-                <div className="h-6 bg-gray-400 rounded col-span-1"></div>
-                <div className="h-6 bg-gray-400 rounded col-span-1"></div>
-                <div className="h-6 bg-gray-400 rounded col-span-1"></div>
-                <div className="h-6 bg-gray-400 rounded col-span-1"></div>
+        <div className="animate-pulse mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-6 rounded-xl bg-white shadow-md">
+                <div className="w-16 h-16 rounded-full bg-gray-300"></div>
+                <div className="h-6 bg-gray-300 rounded col-span-1"></div>
+                <div className="h-6 bg-gray-300 rounded col-span-1"></div>
+                <div className="h-6 bg-gray-300 rounded col-span-1"></div>
+                <div className="h-6 bg-gray-300 rounded col-span-1"></div>
             </div>
         </div>
     );
 
     return (
-        <div className="container mx-auto p-6 bg-gradient-to-r from-blue-800 to-violet-700">
-            <p className="text-4xl font-extrabold text-white mb-8 text-center">
-                O'quvchilar Reytingi
-            </p>
-            <div className="grid grid-cols-5 gap-6 p-6 bg-gradient-to-r from-blue-800 to-violet-700 rounded-3xl shadow-xl">
-                {/* Table Headers */}
-                <div className="font-semibold text-white text-lg bg-violet-600 p-2 rounded-md text-center">
-                    Profil rasmi
+        <div className="flex flex-col min-h-screen bg-gray-100">
+            <p className="text-2xl font-semibold text-center text-indigo-600 mt-4">O'quvchilar Reytingi</p>
+
+            <div className="overflow-x-auto mt-6 px-6 max-w-7xl mx-auto"> {/* Slightly larger max width */}
+                {/* Jadval sarlavhalari */}
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-4 text-indigo-600 font-medium text-lg">
+                    <p>Rasm</p>
+                    <p>Ism</p>
+                    <p>Fakultet</p>
+                    <p>Kurs</p>
+                    <p>Umumiy Coin</p>
                 </div>
-                <div className="font-semibold text-white text-lg bg-violet-600 p-2 rounded-md text-center">
-                    Ismi
+
+
+
+                <div>
+                    {/* Ma'lumotlar yuklanayotgan bo'lsa skeleton loader ko'rsatish */}
+                    {loading ? (
+                        Array.from({ length: 5 }).map((_, index) => (
+                            <SkeletonLoader key={index} />
+                        ))
+                    ) : (
+                        users.map((user, index) => (
+                            <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-6 rounded-xl bg-white shadow-md mb-4 hover:bg-gray-200 transition-colors">
+                                <button onClick={() => openModal(user)} className="flex items-center justify-center">
+                                    <img
+                                        src={user.img || 'https://joybox.uz/wp-content/uploads/default-user.png'}
+                                        alt="Profile"
+                                        className="w-16 h-16 rounded-full object-cover"
+                                    />
+                                </button>
+                                <button onClick={() => openModal(user)} className="flex items-center justify-center">
+                                    <p>{user.name} {user.surname}</p>
+                                </button>
+                                <button onClick={() => openModal(user)} className="flex items-center justify-center">
+                                    <p>{user.faculty}</p>
+                                </button>
+                                <button onClick={() => openModal(user)} className="flex items-center justify-center">
+                                    <p>{user.course || 'Ma\'lumot mavjud emas'}</p>
+                                </button>
+                                <button onClick={() => openModal(user)} className="flex items-center justify-center">
+                                    <p>{user.tokens.length > 0 ? user.tokens[0].quantity : 0} Coin</p>
+                                </button>
+                            </div>
+                        ))
+                    )}
                 </div>
-                <div className="font-semibold text-white text-lg bg-violet-600 p-2 rounded-md text-center">
-                    Fakultet
-                </div>
-                <div className="font-semibold text-white text-lg bg-violet-600 p-2 rounded-md text-center">
-                    Kursi
-                </div>
-                <div className="font-semibold text-white text-lg bg-violet-600 p-2 rounded-md text-center">
-                    Umumiy Coini
-                </div>
-            </div>
-            <div className="divide-y divide-violet-400">
-                {/* Show skeleton loader if data is loading */}
-                {loading ? (
-                    Array.from({ length: 5 }).map((_, index) => (
-                        <SkeletonLoader key={index} />
-                    ))
-                ) : (
-                    users.map((user, index) => (
-                        <div
-                            key={index}
-                            className="grid grid-cols-5 gap-4 items-center p-6 rounded-xl bg-violet-600 shadow-md"
-                        >
-                            <button
-                                className="flex items-center justify-center"
-                                onClick={() => openModal(user)}
-                            >
-                                <img
-                                    src={user.img || 'https://joybox.uz/wp-content/uploads/default-user.png'}
-                                    alt="Profil rasmi"
-                                    className="w-16 h-16 rounded-full border-4 border-violet-600 shadow-lg"
-                                />
-                            </button>
-                            <button
-                                className="text-left text-white font-bold px-2 py-1 rounded-lg bg-violet-700"
-                                onClick={() => openModal(user)}
-                            >
-                                {user.name} {user.surname}
-                            </button>
-                            <button
-                                className="text-left text-white font-semibold px-2 py-1 rounded-lg bg-violet-700"
-                                onClick={() => openModal(user)}
-                            >
-                                {user.faculty}
-                            </button>
-                            <button
-                                className="text-left text-white font-semibold px-2 py-1 rounded-lg bg-violet-700"
-                                onClick={() => openModal(user)}
-                            >
-                                Kursi {user.course || 'Ma’lumot mavjud emas'}
-                            </button>
-                            <button
-                                className="text-left text-white font-semibold px-2 py-1 rounded-lg bg-violet-700"
-                                onClick={() => openModal(user)}
-                            >
-                                {user.tokens.length > 0 ? user.tokens[0].quantity : 0} Coin
-                            </button>
-                        </div>
-                    ))
-                )}
             </div>
 
-            {/* Modal for user details */}
+            {/* Modal oynasi foydalanuvchi ma'lumotlari */}
             <Modal
                 isOpen={modalIsOpen}
                 onRequestClose={closeModal}
-                className="bg-gradient-to-r from-blue-800 to-violet-700 p-10 rounded-3xl shadow-2xl max-w-lg mx-auto mt-20"
-                overlayClassName="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center"
-                contentLabel="User Details"
+                className="p-10 rounded-3xl shadow-2xl max-w-lg mx-auto mt-20 bg-white"
+                overlayClassName="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center"
+                contentLabel="Foydalanuvchi Ma'lumotlari"
             >
                 {selectedUser && (
-                    <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-violet-700 to-blue-800 p-8 rounded-3xl shadow-lg">
-                            <h2 className="text-3xl font-bold text-white mb-4 text-center">
+                    <div className="space-y-4">
+                        <div>
+                            <h2 className="text-xl font-semibold text-indigo-600">
                                 {selectedUser.name} {selectedUser.surname}
                             </h2>
-                            <p className="text-lg text-white text-center">
+                            <p className="text-gray-500">
                                 Umumiy Coini: {selectedUser.tokens.length > 0 ? selectedUser.tokens[0].quantity : 0}
                             </p>
                         </div>
 
-                        <div className="bg-gradient-to-r from-blue-800 to-violet-700 p-8 rounded-3xl shadow-lg">
-                            <h3 className="text-2xl font-semibold text-white mb-4">Coin Tarixi:</h3>
-                            <ul className="list-disc pl-6 space-y-3 text-white">
+                        <div>
+                            <h3 className="text-lg font-semibold text-indigo-600">Coin Tarixi:</h3>
+                            <ul className="list-disc pl-6">
                                 {selectedUser.tokens && selectedUser.tokens.length > 0 ? (
                                     selectedUser.tokens.map((item, idx) => (
-                                        <li key={idx} className="text-lg">
+                                        <li key={idx} className="text-gray-600">
                                             Token ID: {item._id}, Miqdor: {item.quantity}
                                         </li>
                                     ))
                                 ) : (
-                                    <li className="text-lg">Mavjud emas</li>
+                                    <li className="text-gray-500">Ma'lumot mavjud emas</li>
                                 )}
                             </ul>
                         </div>
 
-                        <div className="text-center">
-                            <button
-                                onClick={closeModal}
-                                className="mt-6 bg-violet-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-violet-700 transition duration-300"
-                            >
+
+
+                        <div>
+                            <button onClick={closeModal} className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg">
                                 Yopish
                             </button>
                         </div>

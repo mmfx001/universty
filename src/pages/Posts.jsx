@@ -43,7 +43,7 @@ const Posts = () => {
       try {
         const [postsResponse, usersResponse] = await Promise.all([
           axios.get('https://unversty-2.onrender.com/posts'),
-          axios.get('https://unversty-2.onrender.com/users'),
+          axios.get('https://unversty-2.onrender.com/clubaccounts'),
         ]);
 
         setData(postsResponse.data);
@@ -104,7 +104,7 @@ const Posts = () => {
     };
 
     try {
-      await axios.put(`https://unversty-2.onrender.com/users/${user._id}`, updatedUser);
+      await axios.put(`https://unversty-2.onrender.com/clubaccounts/${user._id}`, updatedUser);
       await axios.put(`https://unversty-2.onrender.com/posts/${post._id}`, updatedPost);
 
       setUsers((prevUsers) =>
@@ -151,7 +151,7 @@ const Posts = () => {
             </p>
           ) : (
             data.map((post) => {
-              const postUser = users.find((user) => user._id === post.userid); // Match user by userid
+              const postUser = users.find((user) => user._id === post.club_id); // Match user by userid
               return (
                 <div
                   key={post._id}
@@ -160,7 +160,7 @@ const Posts = () => {
                   <div className="flex items-center space-x-4 mb-4">
                     {postUser && (
                       <img
-                        src={postUser.img}
+                        src={postUser.logo}
                         alt={postUser.name}
                         className="w-10 h-10 rounded-full"
                       />
