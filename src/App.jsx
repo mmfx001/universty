@@ -12,9 +12,12 @@ import Posts from './pages/Posts';
 import PrivateRoute from './PrivateRoute';
 import Profil from './pages/Profil';
 import About from './pages/Abaut';
+import ClubProfile from './pages/ClubProfil';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 
 const App = () => {
+
   const location = useLocation();
   const hideSidebarRoutes = ['/'];
   const shouldShowSidebar = !hideSidebarRoutes.includes(location.pathname);
@@ -70,13 +73,16 @@ const App = () => {
         />
       )}
 
-      <div className={`flex-grow md:pb-0 ${shouldShowSidebar ? (isOpen ? 'md:ml-[250px]' : 'md:ml-[80px]') : ''} transition-all duration-300`}>
+      <div className={`flex-grow pb-20 md:pb-0 ${shouldShowSidebar ? (isOpen ? 'md:ml-[250px]' : 'md:ml-[80px]') : ''} transition-all duration-300`}>
         {!isMobile && shouldShowSidebar && (
           <button
-            className="fixed ml-1 mt-3 bg-indigo-500 z-50 text-white p-2 rounded-full shadow-lg hover:bg-indigo-600 transition-all"
+            className="fixed mt-[280px] mr-[100px] h-[150px] w-[40px] bg-indigo-500 z-50 text-white p-2 shadow-lg hover:bg-indigo-600 transition-all"
             onClick={toggleSidebar}
+            style={{
+              clipPath: 'polygon(0% 0%, 100% 50%, 0% 100%)',
+            }}
           >
-            {isOpen ? "←" : "→"}
+            {isOpen ? <ArrowLeft /> : <ArrowRight />}
           </button>
         )}
 
@@ -141,8 +147,16 @@ const App = () => {
               </PrivateRoute>
             }
           />
-           <Route
-            path="/abaut"
+          <Route
+            path="/clubprofile"
+            element={
+              <PrivateRoute guestOnly={false}>
+                <ClubProfile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/about"
             element={
               <PrivateRoute guestOnly={false}>
                 <About />

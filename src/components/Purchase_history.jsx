@@ -20,20 +20,20 @@ const PurchaseHistory = () => {
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Загрузка данных пользователя
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await axios.get('https://unversty-2.onrender.com/users');
-        const user = response.data.find(v => v._id === "6736489a0ef973f3f1448e86");
-        if (user) setUserData(user);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
+  const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
 
-    fetchUserData();
-  }, []);
+  // Check if the user is a guest
+  const isGuestUser = loggedInUser && loggedInUser.email === "guest@example.com";
+
+  useEffect(() => {
+    if (loggedInUser && !isGuestUser) {
+      fetch(`https://unversty-2.onrender.com/users/${loggedInUser._id}`)
+        .then(res => res.json())
+        .then(data => setUserData(data))
+        .catch(error => console.error("Error fetching user data:", error));
+    }
+  }, [loggedInUser, isGuestUser]);
+
 
   // Загрузка истории покупок
   useEffect(() => {

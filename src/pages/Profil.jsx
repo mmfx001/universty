@@ -15,12 +15,20 @@ const Profil = () => {
         setTimeout(() => setNotification(""), 3000);
     };
 
+    const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+    let id = loggedInUser._id;
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
                 const response = await axios.get("https://unversty-2.onrender.com/users");
-                const user = response.data.find((u) => u._id === "6736489a0ef973f3f1448e86");
-                setUserData(user);
+                const user = response.data.find((u) => u._id === id);
+
+                if (user) {
+                    setUserData(user); // Set userData after finding the user
+                } else {
+                    setError("User not found");
+                }
             } catch (err) {
                 setError("Ma'lumotlarni olib kelishda xatolik yuz berdi.");
             } finally {
@@ -29,12 +37,19 @@ const Profil = () => {
         };
 
         fetchUserData();
-    }, []);
+    }, [id]);
 
     if (error)
         return (
             <div className="flex justify-center items-center h-screen">
                 <p className="text-red-600 font-semibold">{error}</p>
+            </div>
+        );
+
+    if (loading)
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <Skeleton width={200} height={50} />
             </div>
         );
 

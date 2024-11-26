@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Users,
   Home,
@@ -12,10 +12,14 @@ import {
   Coins,
   CoinsIcon,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FiInfo } from "react-icons/fi";
 
 const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
+  const sidebarRef = useRef(null);
+  const toggleButtonRef = useRef(null);
+  const location = useLocation();
+
   const navigation = [
     { name: "Home", href: "/home", icon: Home },
     { name: "Shop", href: "/shop", icon: ShoppingBag },
@@ -24,15 +28,14 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
     { name: "Posts", href: "/posts", icon: FileText },
     { name: "Rating", href: "/rating", icon: Star },
     { name: "Abaut", href: "/abaut", icon: FiInfo },
-
   ];
 
   // Get logged-in user details from localStorage
   const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser")) || {};
-  
+
   // Define which links to show based on user's role
   const userRole = loggedInUser.role || "guest"; // Default to 'guest' if no role is found
-  const filteredNavigation = userRole === "guest" 
+  const filteredNavigation = userRole === "guest"
     ? navigation.filter(item => ["Shop", "Clubs", "Posts"].includes(item.name)) // Show only these links for guests
     : navigation; // Show all for other roles
 
@@ -41,10 +44,35 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
     console.log("Logged out!");
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+
+      if (
+        isOpen &&
+        isMobile &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target) &&
+        toggleButtonRef.current &&
+        !toggleButtonRef.current.contains(event.target)
+      ) {
+
+        toggleSidebar(); // Close the sidebar
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, isMobile, toggleSidebar]);
+
   return (
     <div className="fixed z-20 top-0 left-0">
       {/* Mobile Toggle Button */}
       <button
+        ref={toggleButtonRef}
         className="md:hidden fixed top-4 left-4 z-50 bg-indigo-500 text-white p-2 rounded-full shadow-lg hover:bg-indigo-600 transition-all"
         onClick={toggleSidebar}
       >
@@ -53,10 +81,14 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
 
       {/* Sidebar */}
       <div
-        className={`transition-all duration-300 ease-in-out z-40 ${isMobile ? "fixed inset-y-0 left-0" : "relative"
-          } ${isOpen ? "translate-x-0" : "-translate-x-full"
-          } flex flex-col h-screen ${isOpen ? "w-[250px]" : "w-[80px]"
-          } bg-gradient-to-b from-indigo-500 to-indigo-700 shadow-lg text-white md:translate-x-0`}
+        ref={sidebarRef}
+        className={`transition-all duration-300 ease-in-out z-40
+          ${isMobile ? "fixed inset-y-0 left-0" : "relative"}
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          flex flex-col h-screen
+          ${isOpen ? "w-[250px]" : "w-[80px]"}
+          bg-gradient-to-b from-indigo-500 to-indigo-700 shadow-lg text-white
+          md:translate-x-0`}
       >
         {/* User Info */}
         <div className="p-4">
@@ -88,6 +120,8 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
           </div>
         </div>
 
+
+
         {/* Navigation Menu */}
         <div className="flex-1 p-4">
           <nav>
@@ -95,8 +129,8 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center ${isOpen ? "justify-start" : "justify-center"
-                  } w-full px-3 py-3 mb-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md`}
+                className={`flex items-center ${isOpen ? "justify-start" : "justify-center"}
+                  w-full px-3 py-3 mb-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md`}
               >
                 <item.icon className="h-5 w-5 text-white" />
                 {isOpen && <span className="ml-4 font-medium">{item.name}</span>}
