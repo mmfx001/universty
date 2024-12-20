@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Users,
   Home,
@@ -10,14 +10,16 @@ import {
   LogOut,
   Menu,
   Coins,
-  CoinsIcon,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { FiInfo } from "react-icons/fi";
+import axios from "axios";
 
 const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
   const sidebarRef = useRef(null);
   const toggleButtonRef = useRef(null);
+  const [loggedInUser, setLoggedInUser] = useState({ role: "guest" });
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
   const navigation = [
@@ -27,26 +29,36 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
     { name: "Profile", href: "/profile", icon: User },
     { name: "Posts", href: "/posts", icon: FileText },
     { name: "Rating", href: "/rating", icon: Star },
-    { name: "Abaut", href: "/abaut", icon: FiInfo },
+    { name: "About", href: "/about", icon: FiInfo },
   ];
 
-  // Get logged-in user details from localStorage
-  const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser")) || {};
+  const fetchPosts = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) return;
 
-  // Define which links to show based on user's role
-  const userRole = loggedInUser.role || "guest"; // Default to 'guest' if no role is found
-  const filteredNavigation = userRole === "guest"
-    ? navigation.filter(item => ["Shop", "Clubs", "Posts"].includes(item.name)) // Show only these links for guests
-    : navigation; // Show all for other roles
+    try {
+      const response = await axios.get("http://37.140.216.178/api/v1/users/userinfo/", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setLoggedInUser(response.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("accessToken");
     console.log("Logged out!");
   };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-
       if (
         isOpen &&
         isMobile &&
@@ -55,31 +67,35 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
         toggleButtonRef.current &&
         !toggleButtonRef.current.contains(event.target)
       ) {
-
         toggleSidebar(); // Close the sidebar
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
 
-    // Cleanup event listener
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, isMobile, toggleSidebar]);
 
+  const filteredNavigation =
+    loggedInUser.role === "guest"
+      ? navigation.filter((item) =>
+          ["Shop", "Clubs", "Posts"].includes(item.name)
+        )
+      : navigation;
+
   return (
     <div className="fixed z-20 top-0 left-0">
-      {/* Mobile Toggle Button */}
       <button
         ref={toggleButtonRef}
+        aria-label="Toggle Sidebar"
         className="md:hidden fixed top-4 left-4 z-50 bg-indigo-500 text-white p-2 rounded-full shadow-lg hover:bg-indigo-600 transition-all"
         onClick={toggleSidebar}
       >
         <Menu className="h-6 w-6" />
       </button>
 
-      {/* Sidebar */}
       <div
         ref={sidebarRef}
         className={`transition-all duration-300 ease-in-out z-40
@@ -90,7 +106,6 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
           bg-gradient-to-b from-indigo-500 to-indigo-700 shadow-lg text-white
           md:translate-x-0`}
       >
-        {/* User Info */}
         <div className="p-4">
           <div className="flex flex-col items-center space-y-2 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-400 shadow-lg">
@@ -104,32 +119,29 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
                 <User className="h-8 w-8 text-white" />
               )}
             </div>
-            {isOpen && (
+            {isOpen && !loading && (
               <div className="space-y-1">
                 <h2 className="text-lg font-medium">
                   {loggedInUser.name || "Guest"}
                 </h2>
-                <p className="text-sm text-white flex items-center gap-2">
-                  <CoinsIcon />
-                  {loggedInUser.tokens && loggedInUser.tokens.length > 0
-                    ? loggedInUser.tokens[0].quantity
-                    : "No Tokens"}
+                <p className="text-sm flex items-center gap-2">
+                  <Coins />
+                  {loggedInUser.tokens ? loggedInUser.tokens[0]?.quantity : "No Tokens"}
                 </p>
               </div>
             )}
           </div>
         </div>
 
-
-
-        {/* Navigation Menu */}
         <div className="flex-1 p-4">
           <nav>
             {filteredNavigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center ${isOpen ? "justify-start" : "justify-center"}
+                className={`flex items-center ${
+                  isOpen ? "justify-start" : "justify-center"
+                }
                   w-full px-3 py-3 mb-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md`}
               >
                 <item.icon className="h-5 w-5 text-white" />
@@ -139,12 +151,10 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
           </nav>
         </div>
 
-        {/* Logout Button */}
         <div className="p-4">
           <Link to="/" className="block">
             <button
-              className={`w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center justify-center transition-all ${!isOpen && "justify-center"
-                }`}
+              className={`w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center transition-all`}
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5" />

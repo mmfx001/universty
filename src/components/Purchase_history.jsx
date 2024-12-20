@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, X } from 'lucide-react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 
-// Скелетон для загрузки
+
 const SkeletonCard = () => (
   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 animate-pulse flex flex-col gap-2 items-center text-center h-full">
     <div className="w-60 h-48 bg-gray-200 rounded-lg mb-4"></div>
@@ -19,87 +20,61 @@ const PurchaseHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-
-  // Check if the user is a guest
   const isGuestUser = loggedInUser && loggedInUser.email === "guest@example.com";
+  const access_token = localStorage.getItem('accessToken')
+
+
+
 
   useEffect(() => {
     if (loggedInUser && !isGuestUser) {
-      fetch(`https://unversty-2.onrender.com/users/${loggedInUser._id}`)
-        .then(res => res.json())
-        .then(data => setUserData(data))
-        .catch(error => console.error("Error fetching user data:", error));
+      const user = loggedInUser
+      setUserData(user)
+
     }
-  }, [loggedInUser, isGuestUser]);
+  }, []);
 
 
-  // Загрузка истории покупок
   useEffect(() => {
     const fetchPurchaseHistory = async () => {
       if (!userData) return;
       try {
-        const response = await axios.get('https://unversty-2.onrender.com/purchases');
-        const userPurchases = response.data.filter(purchase => purchase.userId === userData._id);
-        const sortedPurchases = userPurchases.sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate));
-        setPurchaseHistory(sortedPurchases);
+        const response = await axios.get('http://37.140.216.178/api/v1/shop/shophistory/', {
+          headers: {
+            "authorization": `Bearer ${access_token}`
+          }
+        });
+        const userhistory = response.data
+
+        setPurchaseHistory(userhistory)
+
       } catch (error) {
         console.error("Error fetching purchase history:", error);
       } finally {
-        setIsLoading(false); // Завершаем загрузку
+        setIsLoading(false); 
       }
     };
 
     fetchPurchaseHistory();
   }, [userData]);
 
-  // Открытие модального окна для отмены покупки
+
+
+
   const openCancelModal = (purchase) => {
     setSelectedPurchase(purchase);
     setIsModalOpen(true);
   };
 
-  // Закрытие модального окна
+  
   const closeCancelModal = () => {
     setSelectedPurchase(null);
     setIsModalOpen(false);
   };
 
-  // Отмена покупки
-  const cancelPurchase = async () => {
-    if (!selectedPurchase) return;
 
-    try {
-      const productResponse = await axios.get(`https://unversty-2.onrender.com/products/${selectedPurchase.productId}`);
-      const product = productResponse.data;
 
-      await axios.put(`https://unversty-2.onrender.com/products/${selectedPurchase.productId}`, {
-        quantity: product.quantity + 1
-      });
-
-      const updatedUser = await axios.put(`https://unversty-2.onrender.com/users/${userData._id}`, {
-        tokens: [{ quantity: userData.tokens[0].quantity + selectedPurchase.cost }]
-      });
-
-      await axios.put(`https://unversty-2.onrender.com/purchases/${selectedPurchase._id}`, {
-        status: "отменен"
-      });
-
-      setPurchaseHistory(prevHistory =>
-        prevHistory.map(item =>
-          item._id === selectedPurchase._id ? { ...item, status: 'отменен' } : item
-        )
-      );
-      setUserData(updatedUser.data);
-
-      closeCancelModal();
-      alert("Покупка отменена.");
-    } catch (error) {
-      console.error("Error canceling purchase:", error);
-      alert("Произошла ошибка при отмене покупки.");
-    }
-  };
 
   return (
     <div className="min-h-screen pb-24 md:pb-6 bg-gray-50">
@@ -115,43 +90,42 @@ const PurchaseHistory = () => {
       <div className="container mx-auto px-4 sm:px-6 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {isLoading
-            ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />) // Показываем 6 скелетонов
+            ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />) 
             : purchaseHistory.map((purchase) => (
-              <div key={purchase._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div key={purchase.shop_code} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 flex flex-col gap-2 items-center text-center h-full">
                   <div className="w-60 h-48 mb-4">
                     <img
-                      src={purchase.productImg}
-                      alt={purchase.productName}
+                      src={purchase.product_id.img}
+                      alt={purchase.product_id.name}
                       className="w-full h-full object-contain"
                     />
                   </div>
-                  
+
                   <div className="space-y-3 w-full">
-                    <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                      purchase.status === 'ожидает выдачи' 
-                        ? 'bg-blue-50 text-blue-600' 
-                        : 'bg-green-50 text-green-600'
-                    }`}>
+                    <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${purchase.status === 'pending' ? 'bg-blue-50 text-blue-600' : ''} ${purchase.status === 'confirmed' ? 'bg-green-50 text-green-600' : ''} ${purchase.status === 'canceled' ? 'bg-red-50 text-red-600' : ''}`}>
                       {purchase.status}
                     </span>
-                    
+
                     <h3 className="text-xl font-semibold text-gray-900">
-                      {purchase.productName}
+                      {purchase.product_id.name}
                     </h3>
-                    
+
+𓂀 𝕂𝕠𝕞𝕣𝕠𝕟 𓂀, [19.12.2024 19:11]
+
+
                     <div className="flex items-center justify-center gap-1">
-                      <span className="text-2xl font-bold text-indigo-500">{purchase.cost}</span>
+                      <span className="text-2xl font-bold text-indigo-500">{purchase.product_id.cost}</span>
                       <span className="text-gray-600">Coins</span>
                     </div>
-                    
+
                     <div className="text-sm text-gray-500">
-                      Код покупки <span className="text-gray-900 font-medium">{purchase._id.slice(-5)}</span>
+                      Код покупки <span className="text-gray-900 font-medium">{purchase.shop_code}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-center text-sm text-gray-500 gap-1.5">
                       <Calendar className="w-4 h-4" />
-                      <span>{new Date(purchase.purchaseDate).toLocaleString('ru-RU', {
+                      <span>{new Date(purchase.time).toLocaleString('ru-RU', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -160,23 +134,13 @@ const PurchaseHistory = () => {
                       })}</span>
                     </div>
                   </div>
-
-                  {purchase.status === 'ожидает выдачи' && (
-                    <button
-                      className="w-full mt-auto bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-green-900 transition-colors duration-300 flex items-center justify-center"
-                      onClick={() => openCancelModal(purchase)}
-                    >
-                      <X className="mr-2 h-5 w-5" />
-                      Отменить покупку
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
         </div>
       </div>
 
-      {/* Модальное окно для отмены покупки */}
+
       {isModalOpen && selectedPurchase && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl max-w-md w-[90%] shadow-2xl">

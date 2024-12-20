@@ -40,29 +40,47 @@ export default function Shop() {
 
   useEffect(() => {
     if (loggedInUser && !isGuestUser) {
-      fetch(`https://unversty-2.onrender.com/users/${loggedInUser._id}`)
-        .then(res => res.json())
-        .then(data => setUserData(data))
-        .catch(error => console.error("Error fetching user data:", error));
+      const user = loggedInUser
+      setUserData(user)
     }
-  }, [loggedInUser, isGuestUser]);
-
-  // Загрузка данных продуктов
-  useEffect(() => {
-    setIsLoading(true);
-    fetch('https://unversty-2.onrender.com/products')
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data);
-        setIsLoading(false);
-      })
-      .catch(error => {
-        console.error("Error fetching product data:", error);
-        setIsLoading(false);
-      });
   }, []);
 
+
+
+
+  const url = "http://37.140.216.178/api/v1/shop/getproducts/";
+  const accessToken = localStorage.getItem('accessToken')
+  useEffect(() => {
+    fetch(url, {
+      method: "GET", // yoki POST, PUT, DELETE
+      headers: {
+        "Content-Type": "application/json", // agar JSON yuborsangiz
+        "Authorization": `Bearer ${accessToken}` // tokenni qo‘shish
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setProducts(data)
+        setIsLoading(false)
+        // console.log(data);
+
+      })
+      .catch(error => {
+        console.error("Error:", error);
+      });
+  }, [])
+
+
+
+
+
   const openConfirmationModal = (product) => {
+    console.log(product);
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
@@ -73,40 +91,27 @@ export default function Shop() {
   };
 
   const handlePurchase = async () => {
-    if (userData && userData.tokens[0].quantity >= selectedProduct.cost && selectedProduct.quantity > 0) {
+    if (userData && userData.active_tokens >= selectedProduct.cost && selectedProduct.quantity > 0) {
       try {
-        // Обновление количества продукта
-        const updatedProduct = await axios.put(`https://unversty-2.onrender.com/products/${selectedProduct._id}`, {
-          quantity: selectedProduct.quantity - 1,
+        const updatedUser = {
+          ...userData, // Use userData instead of userdata
+          active_tokens: userData.active_tokens - selectedProduct.cost
+        };
+        localStorage.setItem('loggedInUser', JSON.stringify(updatedUser))
+
+        // Record the purchase
+        const purchase = {
+          product_id: selectedProduct.id
+        };
+
+        await axios.post('http://37.140.216.178/api/v1/shop/buyproduct/', purchase, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}` // Tokenni so‘rovga qo‘shish
+          }
         });
 
-        // Обновление количества монет пользователя
-        const updatedUser = await axios.put(`https://unversty-2.onrender.com/users/${userData._id}`, {
-          tokens: [
-            {
-              quantity: userData.tokens[0].quantity - selectedProduct.cost,
-            },
-          ],
-        });
-
-        // Запись о покупке
-        await axios.post('https://unversty-2.onrender.com/purchases', {
-          userId: userData._id,
-          userName: userData.name,
-          productId: selectedProduct._id,
-          productName: selectedProduct.name,
-          cost: selectedProduct.cost,
-          status: 'ожидает выдачи',
-          productImg: selectedProduct.img,
-        });
-
-        setUserData(updatedUser.data);
-        setProducts((prevProducts) =>
-          prevProducts.map((p) =>
-            p._id === selectedProduct._id ? updatedProduct.data : p
-          )
-        );
-
+        setUserData(updatedUser);
         closeConfirmationModal();
         alert(`Вы успешно купили ${selectedProduct.name} за ${selectedProduct.cost} монет.`);
       } catch (error) {
@@ -117,6 +122,8 @@ export default function Shop() {
       alert("Недостаточно монет или товар закончился.");
     }
   };
+
+
 
   return (
     <div className="min-h-screen pb-24 md:pb-6">
@@ -129,7 +136,7 @@ export default function Shop() {
               <span className="text-sm md:text-base">Xaridlar tarixi</span>
             </Link>
             <div className="text-[#4A66D3] font-semibold text-sm md:text-base">
-              Монеты: {isGuestUser ? 0 : userData ? userData.tokens[0].quantity : 0}
+              Монеты: {isGuestUser ? 0 : userData ? userData.active_tokens : 0}
             </div>
             <Link to='/history' className="md:hidden text-[#4A66D3]">
               <Clock className='w-5 h-5' />
@@ -147,10 +154,10 @@ export default function Shop() {
                   <img
                     src={product.img}
                     alt={product.name}
-                    className="h-40 sm:h-48 w-full object-contain p-2"
+                    className="h-40 sm:h-48 w-full  object-contain p-2"
                   />
                 </div>
-                <div className="p-4 flex flex-col justify-between flex-grow">
+                <div className="p-4  flex flex-col justify-between flex-grow">
                   <div>
                     <h3 className="text-base md:text-lg font-semibold">{product.name}</h3>
                     <div className="mt-2 flex items-center justify-between">
@@ -167,13 +174,13 @@ export default function Shop() {
                     onClick={() => openConfirmationModal(product)}
                     disabled={
                       !userData || // Ensure that the userData is loaded
-                      userData.tokens[0].quantity < product.cost || // User doesn't have enough tokens
+                      userData.active_tokens < product.cost || // User doesn't have enough tokens
                       product.quantity === 0 || // Product is out of stock
                       isGuestUser // If the logged-in user is a guest
                     }
                   >
                     {
-                      !userData || userData.tokens[0].quantity < product.cost || product.quantity === 0
+                      !userData || userData.active_tokens < product.cost || product.quantity === 0
                         ? 'Недостаточно средств'
                         : 'Купить'
                     }
@@ -183,6 +190,8 @@ export default function Shop() {
             ))}
         </div>
       </div>
+
+
 
       {isModalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

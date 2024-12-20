@@ -16,9 +16,7 @@ const HeartIcon = ({ isLiked, onClick, likeCount, disabled }) => (
         e.stopPropagation();
         onClick();
       }}
-      className={`w-8 h-8 fill-current transition-colors duration-300 ${isLiked ? 'text-red-500' : 'text-gray-400'} ${
-        disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-red-500 cursor-pointer'
-      }`}
+      className={`w-8 h-8 fill-current transition-colors duration-300 ${isLiked ? 'text-red-500' : 'text-gray-400'} ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-red-500 cursor-pointer'}`}
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
     >
@@ -36,107 +34,137 @@ const Posts = () => {
   const [comments, setComments] = useState([]);
   const [likedStates, setLikedStates] = useState({});
   const [loading, setLoading] = useState(true);
-  const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-
   useEffect(() => {
     const fetchPosts = async () => {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        console.error('Access token is missing.');
+        return;
+      }
+  
       try {
         const [postsResponse, usersResponse] = await Promise.all([
-          axios.get('https://unversty-2.onrender.com/posts'),
-          axios.get('https://unversty-2.onrender.com/users'),
+          axios.get('http://37.140.216.178/api/v1/posts/user/getpost/', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
+          axios.get('http://37.140.216.178/api/v1/users/userinfo/', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }),
         ]);
-
+  
         setData(postsResponse.data);
         setUsers(usersResponse.data);
-
+  
+        console.log('Users Response:', usersResponse.data);
+  
+        // Foydalanuvchining ID ni olish
+        const currentUser = usersResponse.data[0];  // usersResponse.data massivning 1-chi elementini olish
+        const currentUserId = currentUser?.id;
+        if (!currentUserId) {
+          console.error('Foydalanuvchi ID topilmadi.');
+          return;
+        }
+  
+        console.log('Current User ID:', currentUserId);
+  
+        // Liked states ni yaratish
         const initialLikedStates = {};
         postsResponse.data.forEach((item) => {
-          initialLikedStates[item._id] = false;
+          const likedUsers = item.likes || [];
+          const isLikedByUser = likedUsers.includes(currentUserId);
+          
+          initialLikedStates[item.id] = {
+            likedUsers,
+            isLikedByUser,
+          };
         });
+  
         setLikedStates(initialLikedStates);
-
-        // Initialize liked states for logged-in user
-        if (loggedInUser) {
-          const user = usersResponse.data.find((u) => u.email === loggedInUser.email);
-          if (user) {
-            const userLikedItems = user.likeItems || [];
-            const updatedLikedStates = { ...initialLikedStates };
-            userLikedItems.forEach((id) => {
-              updatedLikedStates[id] = true;
-            });
-            setLikedStates(updatedLikedStates);
-          }
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
+  
     fetchPosts();
-  }, [loggedInUser]);
+  }, []);
+  
+
+  const fetchComments = async (postId) => {
+    try {
+      const response = await axios.post(
+        'http://37.140.216.178/api/v1/posts/user/getcomments/',
+        { post_id: postId }
+      );
+      setComments(response.data);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      alert('Izohlarni olishda xatolik yuz berdi.');
+    }
+  };
 
   const handleLikeToggle = async (post) => {
-    if (!loggedInUser || loggedInUser.email === 'guest@example.com') {
+    if (!users || users.email === 'guest@example.com') {
       alert('Guests cannot like posts.');
       return;
     }
 
-    const user = users.find((user) => user.email === loggedInUser.email);
-    if (!user) {
-      console.error('User not found.');
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      alert('Authorization token is missing.');
       return;
     }
 
-    const isPostLiked = likedStates[post._id];
-    const updatedLikedItems = isPostLiked
-      ? user.likeItems.filter((id) => id !== post._id)
-      : [...(user.likeItems || []), post._id];
-
-    const updatedUser = {
-      ...user,
-      likeItems: updatedLikedItems,
-    };
-
-    const updatedPost = {
-      ...post,
-      likes: isPostLiked ? post.likes - 1 : post.likes + 1,
-    };
+    const isLiked = likedStates[post.id]?.isLikedByUser;
+    const url = 'http://37.140.216.178/api/v1/posts/like/';
+    const method = isLiked ? 'DELETE' : 'POST';
+    const payload = { post_id: post.id };
 
     try {
-      await axios.put(`https://unversty-2.onrender.com/users/${user._id}`, updatedUser);
-      await axios.put(`https://unversty-2.onrender.com/posts/${post._id}`, updatedPost);
+      const response = await axios({
+        method,
+        url,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        data: payload,
+      });
 
-      setUsers((prevUsers) =>
-        prevUsers.map((u) => (u.email === loggedInUser.email ? updatedUser : u))
-      );
-      setData((prevData) =>
-        prevData.map((p) => (p._id === post._id ? updatedPost : p))
-      );
-      setLikedStates((prevStates) => ({
-        ...prevStates,
-        [post._id]: !isPostLiked,
-      }));
+      if (response.status === 201 || response.status === 200) {
+        // Update the like state
+        setLikedStates((prev) => {
+          const newLikedUsers = isLiked
+            ? prev[post.id].likedUsers.filter((userId) => userId !== users.id)
+            : [...prev[post.id].likedUsers, users.id];
+
+          return {
+            ...prev,
+            [post.id]: {
+              likedUsers: newLikedUsers,
+              isLikedByUser: !isLiked,
+            },
+          };
+        });
+      } else {
+        alert('Failed to toggle like. Please try again later.');
+      }
     } catch (error) {
-      console.error('Error updating like status:', error);
+      console.error('Error toggling like:', error);
+      alert('Xatolik yuz berdi. Like amalini bajara olmadik.');
     }
   };
 
   const handleCardClick = (post) => {
     setSelectedPost(post);
     setModalOpen(true);
-    fetchComments(post._id);
+    fetchComments(post.id);
   };
 
-  const fetchComments = async (postId) => {
-    try {
-      const response = await axios.get(
-        `https://unversty-2.onrender.com/comments?productId=${postId}`
-      );
-      setComments(response.data);
-    } catch (error) {
-      console.error('Error fetching comments:', error);
-    }
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedPost(null);
   };
 
   if (loading) return <LoadingSpinner />;
@@ -152,66 +180,65 @@ const Posts = () => {
           ) : (
             data.map((post) => {
               const postUser = users.find((user) => user._id === post.userid); // Match user by userid
+              const likeCount = likedStates[post.id]?.likedUsers.length || 0;
               return (
                 <div
-                  key={post._id}
+                  key={post.id}
                   className="bg-white p-4 rounded-lg duration-200 shadow-lg shadow-indigo-200"
                 >
                   <div className="flex items-center space-x-4 mb-4">
-                    {postUser && (
+                    {post.club_id?.logo && (
                       <img
-                        src={postUser.img}
-                        alt={postUser.name}
+                        src={post.club_id.logo}
+                        alt={post.club_id.name || 'Club logo'}
                         className="w-10 h-10 rounded-full"
                       />
                     )}
+
                     <div className="flex flex-col">
-                      <h3 className="text-lg font-semibold text-gray-800">{post.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-800">{post.body}</h3>
                       <p className="text-sm text-gray-500">{postUser?.name}</p>
                     </div>
                   </div>
 
-                  {/* Image */}
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-[400px] object-cover rounded-md mb-4"
-                  />
+                  {post.images && post.images.length > 0 && (
+                    <img
+                      src={post.images[0]?.image}
+                      alt={post.title || 'Post image'}
+                      className="w-full h-[400px] object-cover rounded-md mb-4"
+                    />
+                  )}
 
-                  {/* Post Details */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center space-x-3">
                       <HeartIcon
-                        isLiked={likedStates[post._id]}
+                        isLiked={likedStates[post.id]?.isLikedByUser}
                         onClick={() => handleLikeToggle(post)}
-                        disabled={loggedInUser && loggedInUser.email === 'guest@example.com'} // Disable like if guest
+                        disabled={users && users.email === 'guest@example.com'}
+                        likeCount={likeCount}
                       />
-                      <span className="text-md text-gray-600">{post.likes} Likes</span>
                     </div>
                     <button
                       onClick={() => handleCardClick(post)}
-                      className="px-4 py-2 text-sm bg-gray-200 rounded-full hover:bg-gray-300 transition-colors duration-200"
+                      className="px-4 py-2 text-sm bg-gray-200 rounded-full hover:bg-gray-300"
                     >
-                      Izohlar
+                      Show Comments
                     </button>
                   </div>
-
-                  {/* Post Caption */}
-                  <p className="text-sm text-gray-800">{post.description}</p>
                 </div>
               );
             })
           )}
         </div>
       </div>
+
       {modalOpen && (
         <CommentModal
           isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onCommentSubmit={(newComment) => setComments((prev) => [newComment, ...prev])}
+          onClose={handleCloseModal}
           allComments={comments}
-          productId={selectedPost._id}
-          userEmail={loggedInUser.email}
+          productId={selectedPost.id}
+          onCommentSubmit={(newComment) => setComments([...comments, newComment])}
         />
       )}
     </div>
