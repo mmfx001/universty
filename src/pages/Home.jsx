@@ -5,6 +5,7 @@ import Slider from 'react-slick'
 import axios from 'axios'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
+import SwipperBanner from './SwigerBAnner'
 
 function Home() {
   const [news, setNews] = useState([])
@@ -208,31 +209,14 @@ function Home() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-8">
+          <div className="space-y-8 flex flex-col gap-12">
             {/* News Slider */}
-            <div className="bg-white rounded-2xl p-8 shadow-xl">
-              {loading ? (
-                <div className="h-60 bg-indigo-200 rounded-lg animate-pulse"></div>
-              ) : (
-                <Slider {...settings}>
-                  {news.map((item, index) => (
-                    <div key={index}>
-                      <img
-                        src={item.banner}
-                        alt="News"
-                        className="w-full h-60 object-cover rounded-lg shadow-md"
-                      />
-                    </div>
-                  ))}
-                </Slider>
-              )}
-            </div>
+          <SwipperBanner/>
 
 
 
             {/* Events Section */}
-            <h3 className="text-2xl font-bold text-indigo-800 mb-6">EVENTS</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 ">
               {Events.map((event) => (
                 <div
                   key={event.id}

@@ -170,7 +170,7 @@ const Posts = () => {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="w-full flex items-center justify-center bg-gray-100 py-8">
+    <div className="w-full flex items-center justify-center bg-indigo-50 py-8">
       <div className="max-w-3xl w-full mx-auto p-4 lg:p-6 overflow-hidden">
         <div className="flex flex-col space-y-8">
           {data.length === 0 ? (
@@ -179,7 +179,7 @@ const Posts = () => {
             </p>
           ) : (
             data.map((post) => {
-              const postUser = users.find((user) => user._id === post.userid); // Match user by userid
+              const postUser = users.find((user) => user.id === post.userid); // Match user by userid
               const likeCount = likedStates[post.id]?.likedUsers.length || 0;
               return (
                 <div
@@ -222,7 +222,7 @@ const Posts = () => {
                       onClick={() => handleCardClick(post)}
                       className="px-4 py-2 text-sm bg-gray-200 rounded-full hover:bg-gray-300"
                     >
-                      Show Comments
+                       Comments
                     </button>
                   </div>
                 </div>

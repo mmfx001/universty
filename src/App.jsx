@@ -6,7 +6,7 @@ import Home from './pages/Home';
 import Login from './Login';
 import Purchase_history from './components/Purchase_history';
 import Clubs from './pages/Clubs';
-import Rating from './pages/Rating';
+import Rating from './pages/Reyting';
 import Reyting from './pages/Reyting';
 import Posts from './pages/Posts';
 import PrivateRoute from './PrivateRoute';

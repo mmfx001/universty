@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Router navigatsiyasi uchun
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-screen">
@@ -13,19 +14,17 @@ function Clubs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate(); // Router navigatsiyasi
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://unversty-2.onrender.com/clubAccounts")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Ma'lumotlarni yuklashda xatolik");
-        }
-        return response.json();
+    const accessToken = localStorage.getItem("accessToken");
+    axios
+      .get("http://37.140.216.178/api/v1/clubs/getallclubs/", {
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
-      .then((data) => {
-        setClubs(data);
-        setFilteredClubs(data);
+      .then((response) => {
+        setClubs(response.data);
+        setFilteredClubs(response.data);
         setLoading(false);
       })
       .catch((err) => {
@@ -43,13 +42,12 @@ function Clubs() {
     setFilteredClubs(filtered);
   };
 
-  // Batafsil sahifaga o'tkazish funksiyasi
   const handleDetail = (club) => {
     navigate(`/clubprofile`, { state: { club } });
   };
 
   return (
-    <div className="relative bg-gray-50 min-h-screen">
+    <div className="relative bg-indigo-50 min-h-screen">
       {loading && <LoadingSpinner />}
       <div
         className={`container mx-auto px-4 py-8 transition-opacity duration-300 ${
@@ -69,13 +67,12 @@ function Clubs() {
               />
             </div>
             <h1 className="text-4xl font-bold text-center mb-12 text-blue-600">
-              Klub ro'yxati
             </h1>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredClubs.length > 0 ? (
                 filteredClubs.map((club) => (
                   <div
-                    key={club.club_id}
+                    key={club.id}
                     className="bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-lg shadow-lg p-6 transform hover:scale-105 transition-transform duration-200"
                   >
                     <div className="flex justify-center mb-4">
@@ -90,12 +87,12 @@ function Clubs() {
                     </h2>
                     <p className="text-white mb-4">
                       <span className="font-bold">Lider:</span>{" "}
-                      {club.leader || "Keltirilmagan"}
+                      {`${club.leader?.name || ""} ${club.leader?.surname || ""}` ||
+                        "Keltirilmagan"}
                     </p>
-               
                     <p className="text-white mb-4">
-                      <span className="font-bold">Category:</span>{" "}
-                      {club.category || "Keltirilmagan"}
+                      <span className="font-bold">Kategoriya:</span>{" "}
+                      {club.category?.name || "Keltirilmagan"}
                     </p>
                     <button
                       onClick={() => handleDetail(club)}
@@ -107,7 +104,7 @@ function Clubs() {
                 ))
               ) : (
                 <div className="col-span-3 text-center text-gray-500">
-                  Klublar haqida ma'lumotlar yo'q
+                  no data
                 </div>
               )}
             </div>

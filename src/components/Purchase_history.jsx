@@ -111,7 +111,6 @@ const PurchaseHistory = () => {
                       {purchase.product_id.name}
                     </h3>
 
-𓂀 𝕂𝕠𝕞𝕣𝕠𝕟 𓂀, [19.12.2024 19:11]
 
 
                     <div className="flex items-center justify-center gap-1">

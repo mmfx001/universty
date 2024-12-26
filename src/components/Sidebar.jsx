@@ -18,7 +18,7 @@ import axios from "axios";
 const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
   const sidebarRef = useRef(null);
   const toggleButtonRef = useRef(null);
-  const [loggedInUser, setLoggedInUser] = useState({ role: "guest" });
+  const [loggedInUser, setLoggedInUser] = useState({});
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
@@ -32,25 +32,30 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
     { name: "About", href: "/about", icon: FiInfo },
   ];
 
-  const fetchPosts = async () => {
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+  
+  const fetchUserInfo = async () => {
     const accessToken = localStorage.getItem("accessToken");
     if (!accessToken) return;
-
+  
     try {
       const response = await axios.get("http://37.140.216.178/api/v1/users/userinfo/", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      setLoggedInUser(response.data);
+  
+      // If response data is an array, pick the first element
+      const user = Array.isArray(response.data) ? response.data[0] : response.data;
+  
+      setLoggedInUser(user);
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchPosts();
-  }, []);
+  
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -67,7 +72,7 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
         toggleButtonRef.current &&
         !toggleButtonRef.current.contains(event.target)
       ) {
-        toggleSidebar(); // Close the sidebar
+        toggleSidebar();
       }
     };
 
@@ -109,11 +114,11 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
         <div className="p-4">
           <div className="flex flex-col items-center space-y-2 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-400 shadow-lg">
-              {loggedInUser.img ? (
+              {loggedInUser.image ? (
                 <img
-                  src={loggedInUser.img}
-                  alt={loggedInUser.name || "User"}
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-blue-500"
+                src={`http://37.140.216.178${loggedInUser.image|| "https://via.placeholder.com/120"}`}
+                alt={loggedInUser.name}
+                  className="w-10 h-10 md:w-16 md:h-16 rounded-full border-2 border-blue-500"
                 />
               ) : (
                 <User className="h-8 w-8 text-white" />
@@ -126,7 +131,7 @@ const Sidebar = ({ isMobile, isOpen, toggleSidebar }) => {
                 </h2>
                 <p className="text-sm flex items-center gap-2">
                   <Coins />
-                  {loggedInUser.tokens ? loggedInUser.tokens[0]?.quantity : "No Tokens"}
+                  {loggedInUser.active_tokens || "No Tokens"}
                 </p>
               </div>
             )}

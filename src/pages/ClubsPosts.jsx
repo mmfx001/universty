@@ -9,14 +9,15 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const HeartIcon = ({ isLiked, onClick, likeCount }) => (
+const HeartIcon = ({ isLiked, onClick, likeCount, disabled }) => (
     <div className="flex items-center space-x-2">
         <svg
             onClick={(e) => {
+                if (disabled) return;
                 e.stopPropagation();
                 onClick();
             }}
-            className={`w-8 h-8 fill-current transition-colors duration-300 ${isLiked ? 'text-red-500' : 'text-gray-400'} hover:text-red-500 cursor-pointer`}
+            className={`w-8 h-8 fill-current transition-colors duration-300 ${isLiked ? 'text-red-500' : 'text-gray-400'} ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:text-red-500 cursor-pointer'}`}
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
         >
@@ -34,105 +35,130 @@ const ClubPosts = () => {
     const [comments, setComments] = useState([]);
     const [likedStates, setLikedStates] = useState({});
     const [loading, setLoading] = useState(true);
-    const [userData, setUserData] = useState(null); // New state for user data
-    const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
     const location = useLocation();
-    const club = location.state?.club; // Get the club info from the location state
+    const clubId = location.state?.club.id;
 
     useEffect(() => {
         const fetchPosts = async () => {
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                console.error('Access token is missing.');
+                return;
+            }
+
             try {
                 const [postsResponse, usersResponse] = await Promise.all([
-                    axios.get('https://unversty-2.onrender.com/posts'),
-                    axios.get('https://unversty-2.onrender.com/users'),
+                    axios.get(`http://37.140.216.178/api/v1/posts/getclubposts/${clubId}/`, {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                    }),
+                    axios.get('http://37.140.216.178/api/v1/users/userinfo/', {
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                    }),
                 ]);
 
-                // Filter posts based on club._id
-                const filteredPosts = postsResponse.data.filter(post => post.club_id === club._id);
-                setData(filteredPosts);
+                setData(postsResponse.data);
                 setUsers(usersResponse.data);
 
-                const initialLikedStates = {};
-                filteredPosts.forEach((item) => {
-                    initialLikedStates[item._id] = false;
-                });
-                setLikedStates(initialLikedStates);
-
-                // Initialize liked states for logged-in user
-                if (loggedInUser) {
-                    const user = usersResponse.data.find((u) => u.email === loggedInUser.email);
-                    if (user) {
-                        const userLikedItems = user.likeItems || [];  // Default to an empty array if likeItems is undefined
-                        const updatedLikedStates = { ...initialLikedStates };
-                        userLikedItems.forEach((id) => {
-                            updatedLikedStates[id] = true;
-                        });
-                        setLikedStates(updatedLikedStates);
-                    }
+                // Foydalanuvchining ID ni olish
+                const currentUser = usersResponse.data[0];  // usersResponse.data massivning 1-chi elementini olish
+                const currentUserId = currentUser?.id;
+                if (!currentUserId) {
+                    console.error('Foydalanuvchi ID topilmadi.');
+                    return;
                 }
+
+                // Liked states ni yaratish
+                const initialLikedStates = {};
+                postsResponse.data.forEach((item) => {
+                    const likedUsers = item.likes || [];
+                    const isLikedByUser = likedUsers.includes(currentUserId);
+
+                    initialLikedStates[item.id] = {
+                        likedUsers,
+                        isLikedByUser,
+                    };
+                });
+
+                setLikedStates(initialLikedStates);
             } catch (error) {
                 console.error('Error fetching data:', error);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchPosts();
-    }, [loggedInUser, club._id]); // Depend on club._id
+    }, [clubId]);
 
-    // Handle like toggle
-    const handleLikeToggle = async (post) => {
-        if (!loggedInUser) {
-            alert('Please log in to like a post.');
-            return;
-        }
-
-        const user = users.find((user) => user.email === loggedInUser.email);
-        console.log(loggedInUser.email);
-
-        if (!user) {
-            console.error('User not found.');
-            return;
-        }
-
-        const isPostLiked = likedStates[post._id];
-        const updatedLikedItems = isPostLiked
-            ? user.likeItems.filter((id) => id !== post._id)
-            : [...(user.likeItems || []), post._id];  // Use empty array fallback if likeItems is undefined
-
-        const updatedUser = {
-            ...user,
-            likeItems: updatedLikedItems,
-        };
-
-        const updatedPost = {
-            ...post,
-            likes: isPostLiked ? post.likes - 1 : post.likes + 1,
-        };
-
+    const fetchComments = async (postId) => {
         try {
-            await axios.put(`https://unversty-2.onrender.com/users/${user._id}`, updatedUser);
-            await axios.put(`https://unversty-2.onrender.com/posts/${post._id}`, updatedPost);
-
-            setUsers((prevUsers) =>
-                prevUsers.map((u) => (u.email === loggedInUser.email ? updatedUser : u))
+            const response = await axios.post(
+                'http://37.140.216.178/api/v1/posts/user/getcomments/',
+                { post_id: postId }
             );
-            setData((prevData) =>
-                prevData.map((p) => (p._id === post._id ? updatedPost : p))
-            );
-            setLikedStates((prevStates) => ({
-                ...prevStates,
-                [post._id]: !isPostLiked,
-            }));
+            setComments(response.data);
         } catch (error) {
-            console.error('Error updating like status:', error);
+            console.error('Error fetching comments:', error);
+            alert('Izohlarni olishda xatolik yuz berdi.');
         }
     };
 
-    // Handle card click to open comment modal
+    const handleLikeToggle = async (post) => {
+        if (!users || users.email === 'guest@example.com') {
+            alert('Guests cannot like posts.');
+            return;
+        }
+
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+            alert('Authorization token is missing.');
+            return;
+        }
+
+        const isLiked = likedStates[post.id]?.isLikedByUser;
+        const url = 'http://37.140.216.178/api/v1/posts/like/';
+        const method = isLiked ? 'DELETE' : 'POST';
+        const payload = { post_id: post.id };
+
+        try {
+            const response = await axios({
+                method,
+                url,
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                data: payload,
+            });
+
+            if (response.status === 201 || response.status === 200) {
+                // Update the like state
+                setLikedStates((prev) => {
+                    const newLikedUsers = isLiked
+                        ? prev[post.id].likedUsers.filter((userId) => userId !== users.id)
+                        : [...prev[post.id].likedUsers, users.id];
+
+                    return {
+                        ...prev,
+                        [post.id]: {
+                            likedUsers: newLikedUsers,
+                            isLikedByUser: !isLiked,
+                        },
+                    };
+                });
+            } else {
+                alert('Failed to toggle like. Please try again later.');
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            alert('Xatolik yuz berdi. Like amalini bajara olmadik.');
+        }
+    };
+
     const handleCardClick = (post) => {
         setSelectedPost(post);
         setModalOpen(true);
-        fetchComments(post._id);
+        fetchComments(post.id);
     };
 
     const handleCloseModal = () => {
@@ -140,75 +166,62 @@ const ClubPosts = () => {
         setSelectedPost(null);
     };
 
-    const fetchComments = async (postId) => {
-        try {
-            const response = await axios.get(
-                `https://unversty-2.onrender.com/comments?productId=${postId}`
-            );
-            setComments(response.data);
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-        }
-    };
-
-    const handleCommentSubmit = (newComment) => {
-        setComments((prevComments) => [newComment, ...prevComments]);
-    };
-
     if (loading) return <LoadingSpinner />;
 
     return (
-        <div className="w-full flex items-center justify-center bg-white">
-            <div className="max-w-3xl h-[430px] w-full mx-auto p-2 lg:p-6 overflow-auto">
+        <div className="w-full flex items-center justify-center bg-indigo-50">
+            <div className="max-w-3xl h-[520px] w-full mx-auto p-2 lg:p-6 overflow-auto">
                 <div className="flex flex-col space-y-8">
                     {data.length === 0 ? (
-                        <p className="text-center text-lg font-poppins text-indigo-600">
-                            Postlar mavjud emas
+                        <p className="text-center text-lg font-poppins text-gray-600">
+                            No posts available at the moment.
                         </p>
                     ) : (
                         data.map((post) => {
-                            const postUser = users.find((user) => user._id === post.userid); // Match user by userid
+                            const postUser = users.find((user) => user.id === post.userid); // Match user by userid
+                            const likeCount = likedStates[post.id]?.likedUsers.length || 0;
                             return (
                                 <div
-                                    key={post._id}
+                                    key={post.id}
                                     className="bg-white p-4 rounded-lg duration-200 shadow-lg shadow-indigo-200"
                                 >
                                     <div className="flex items-center space-x-4 mb-4">
-                                        {postUser && (
+                                        {post.club_id?.logo && (
                                             <img
-                                                src={postUser.img}
-                                                alt={postUser.name}
+                                                src={post.club_id.logo}
+                                                alt={post.club_id.name || 'Club logo'}
                                                 className="w-10 h-10 rounded-full"
                                             />
                                         )}
+
                                         <div className="flex flex-col">
-                                            <h3 className="text-lg font-semibold text-gray-800">{post.title}</h3>
+                                            <h3 className="text-lg font-semibold text-gray-800">{post.body}</h3>
                                             <p className="text-sm text-gray-500">{postUser?.name}</p>
                                         </div>
                                     </div>
 
-                                    {/* Image */}
-                                    <img
-                                        src={post.image}
-                                        alt={post.title}
-                                        className="w-full h-[234px] object-cover rounded-md mb-4"
-                                    />
+                                    {post.images && post.images.length > 0 && (
+                                        <img
+                                            src={post.images[0]?.image}
+                                            alt={post.title || 'Post image'}
+                                            className="w-full h-[350px] object-cover rounded-md mb-4"
+                                        />
+                                    )}
 
-                                    {/* Post Details */}
                                     <div className="flex justify-between items-center mb-4">
                                         <div className="flex items-center space-x-3">
                                             <HeartIcon
-                                                isLiked={likedStates[post._id]}
+                                                isLiked={likedStates[post.id]?.isLikedByUser}
                                                 onClick={() => handleLikeToggle(post)}
-                                                disabled={loggedInUser && loggedInUser.email === 'guest@example.com'} // Disable like if guest
+                                                disabled={users && users.email === 'guest@example.com'}
+                                                likeCount={likeCount}
                                             />
-                                            <span className="text-md text-gray-600">{post.likes} Likes</span>
                                         </div>
                                         <button
                                             onClick={() => handleCardClick(post)}
-                                            className="px-4 py-2 text-sm bg-gray-200 rounded-full hover:bg-gray-300 transition-colors duration-200"
+                                            className="px-4 py-2 text-sm bg-gray-200 rounded-full hover:bg-gray-300"
                                         >
-                                            Izohlar
+                                             Comments
                                         </button>
                                     </div>
                                 </div>
@@ -218,12 +231,13 @@ const ClubPosts = () => {
                 </div>
             </div>
 
-            {modalOpen && selectedPost && (
+            {modalOpen && (
                 <CommentModal
-                    post={selectedPost}
-                    comments={comments}
+                    isOpen={modalOpen}
                     onClose={handleCloseModal}
-                    onCommentSubmit={handleCommentSubmit}
+                    allComments={comments}
+                    productId={selectedPost.id}
+                    onCommentSubmit={(newComment) => setComments([...comments, newComment])}
                 />
             )}
         </div>

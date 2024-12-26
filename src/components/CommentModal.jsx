@@ -1,114 +1,135 @@
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
-import axios from 'axios';
+import React, { useState } from "react";
+import ReactDOM from "react-dom";
+import axios from "axios";
+import { XMarkIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
 
 const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit }) => {
-    const [newComment, setNewComment] = useState('');
-    const [editingCommentId, setEditingCommentId] = useState(null); // Tracks the comment being edited
-    const [errorMessage, setErrorMessage] = useState('');
-    const accessToken = localStorage.getItem('accessToken');
+  const [newComment, setNewComment] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const accessToken = localStorage.getItem("accessToken");
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    const filteredComments = allComments
-        .filter((comment) => comment.post_id === productId)
-        .sort((a, b) => new Date(b.commented_at) - new Date(a.commented_at));
+  const filteredComments = allComments
+    .filter((comment) => comment.post_id === productId)
+    .sort((a, b) => new Date(b.commented_at) - new Date(a.commented_at));
 
-    const handleCommentSubmit = async () => {
-        if (!newComment.trim()) {
-            setErrorMessage('Izoh matnini kiritishingiz kerak.');
-            return;
-        }
+  const handleCommentSubmit = async () => {
+    if (!newComment.trim()) {
+      setErrorMessage("Izoh matnini kiritishingiz kerak.");
+      return;
+    }
 
-        try {
-            let response;
-            if (editingCommentId) {
-                // PUT request for editing
-                response = await axios.put(
-                    `http://37.140.216.178/api/v1/posts/club/comments/${editingCommentId}/`,
-                    {
-                        text: newComment,
-                        post_id: productId,
-                    },
-                    {
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                    }
-                );
-            } else {
-                // POST request for adding a new comment
-                response = await axios.post(
-                    `http://37.140.216.178/api/v1/posts/club/comments/`,
-                    {
-                        text: newComment,
-                        post_id: productId,
-                        commented_at: new Date().toISOString(),
-                    },
-                    {
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                    }
-                );
-            }
+    try {
+      let response;
+      if (editingCommentId) {
+        response = await axios.put(
+          `http://37.140.216.178/api/v1/posts/club/comments/${editingCommentId}/`,
+          { text: newComment, post_id: productId },
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+      } else {
+        response = await axios.post(
+          `http://37.140.216.178/api/v1/posts/club/comments/`,
+          { text: newComment, post_id: productId, commented_at: new Date().toISOString() },
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+      }
 
-            onCommentSubmit(response.data);
-            setNewComment('');
-            setEditingCommentId(null);
-            setErrorMessage('');
-        } catch (error) {
-            console.error('Izoh yuborishda xatolik yuz berdi:', error);
-            setErrorMessage('Izoh yuborishda xatolik yuz berdi.');
-        }
-    };
+      onCommentSubmit(response.data);
+      setNewComment("");
+      setEditingCommentId(null);
+      setErrorMessage("");
+    } catch (error) {
+      console.error("Izoh yuborishda xatolik yuz berdi:", error);
+      setErrorMessage("Izoh yuborishda xatolik yuz berdi.");
+    }
+  };
 
-    const handleEdit = (comment) => {
-        setNewComment(comment.text);
-        setEditingCommentId(comment.id);
-    };
+  const handleEdit = (comment) => {
+    setNewComment(comment.text);
+    setEditingCommentId(comment.id);
+  };
 
-    return ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
-            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md relative">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 text-2xl"
-                >
-                    &times;
-                </button>
-                <h2 className="text-xl font-semibold mb-4">Izohlar</h2>
-                <div className="overflow-y-auto max-h-60 mb-4">
-                    {filteredComments.length === 0 ? (
-                        <p className="text-gray-500">Hozircha izohlar yo'q.</p>
-                    ) : (
-                        filteredComments.map((comment) => (
-                            <div key={comment.id} className="mb-4">
-                                <p className="font-semibold text-gray-800">{comment.text}</p>
-                                <p className="text-sm text-gray-500">{comment.commented_at}</p>
-                                <button
-                                    onClick={() => handleEdit(comment)}
-                                    className="text-blue-500 text-sm underline"
-                                >
-                                    Tahrirlash
-                                </button>
-                            </div>
-                        ))
-                    )}
+  const handleDelete = async (commentId) => {
+    try {
+      await axios.delete(`http://37.140.216.178/api/v1/posts/club/comments/${commentId}/`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      onCommentSubmit(allComments.filter((comment) => comment.id !== commentId));
+    } catch (error) {
+      console.error("Izohni o'chirishda xatolik yuz berdi:", error);
+      setErrorMessage("Izohni o'chirishda xatolik yuz berdi.");
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleCommentSubmit();
+    }
+  };
+
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-60 z-50">
+      <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+        >
+          <XMarkIcon className="h-6 w-6" />
+        </button>
+        <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Izohlar</h2>
+        <div className="overflow-y-auto max-h-60 mb-4 space-y-4">
+          {filteredComments.length === 0 ? (
+            <p className="text-gray-500 text-center">Hozircha izohlar yo'q.</p>
+          ) : (
+            filteredComments.map((comment) => (
+              <div key={comment.id} className="flex justify-between items-start border-b pb-2">
+                <div>
+                  <p className="font-medium text-gray-900">{comment.text}</p>
+                  <p className="text-sm text-gray-500 font-semibold ">
+                    {new Date(comment.commented_at).toLocaleString()}
+                  </p>
                 </div>
-                <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full border p-2 rounded mb-4"
-                    placeholder="Izoh qo'shing yoki tahrirlang..."
-                />
-                {errorMessage && <p className="text-red-500 text-sm">{errorMessage}</p>}
-                <button
-                    onClick={handleCommentSubmit}
-                    className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-                >
-                    {editingCommentId ? 'Izohni saqlash' : 'Izohni yuborish'}
-                </button>
-            </div>
-        </div>,
-        document.body
-    );
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEdit(comment)}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(comment.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          onKeyDown={handleKeyPress}
+          className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 mb-2"
+          placeholder="Izoh qo'shing yoki tahrirlang..."
+          rows={3}
+        />
+        {errorMessage && <p className="text-red-500 text-sm mb-2">{errorMessage}</p>}
+        <button
+          onClick={handleCommentSubmit}
+          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 w-full"
+        >
+          {editingCommentId ? "Izohni saqlash" : "Izohni yuborish"}
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
 };
 
 export default CommentModal;

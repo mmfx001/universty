@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Modal from 'react-modal';
-import { Star } from 'lucide-react';
+import User from '../assets/user.png';
+
+// Function to check if the image URL is valid
+const isValidImageUrl = (url) => {
+    const img = new Image();
+    img.src = url;
+    return img.complete && img.naturalHeight !== 0;
+};
 
 const Reyting = () => {
     const [users, setUsers] = useState([]);
@@ -9,21 +16,29 @@ const Reyting = () => {
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    // Fetch user data from API
+    const accessToken = localStorage.getItem('accessToken');
+
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('https://unversty-2.onrender.com/users');
-                setUsers(response.data);
+                const response = await axios.get(
+                    'http://37.140.216.178/api/v1/users/rating/',
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+                setUsers(response.data.results || []);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching data:', error.message);
             } finally {
-                setLoading(false); // Stop loading after data is fetched
+                setLoading(false);
             }
         };
 
         fetchData();
-    }, []);
+    }, [accessToken]);
 
     // Open modal and select a user
     const openModal = (user) => {
@@ -51,53 +66,43 @@ const Reyting = () => {
     );
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-100">
-            <p className="text-3xl font-bold text-center text-indigo-600 mt-10">O'quvchilar Reytingi</p>
+        <div className="flex flex-col min-h-screen bg-indigo-50">
+            <p className="text-3xl font-bold text-center text-indigo-600 mt-10"></p>
 
-            <div className="overflow-x-auto mt-6 px-6 max-w-7xl mx-auto">
-                {/* Table headers */}
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-4 text-indigo-600 font-medium text-lg">
-                    <p className="text-center">Rasm</p>
-                    <p className="text-center">Ism</p>
-                    <p className="text-center">Fakultet</p>
-                    <p className="text-center">Kurs</p>
-                    <p className="text-center">Umumiy Coin</p>
-                </div>
-
-
-
+            <div className="overflow-x-auto mt-6 px-6 w-[100%] mx-auto">
                 <div>
-                    {/* Show skeleton loader if data is loading */}
                     {loading ? (
                         Array.from({ length: 5 }).map((_, index) => (
                             <SkeletonLoader key={index} />
                         ))
                     ) : (
                         users.map((user, index) => (
-                            <div key={index} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-700 text-white mb-4 hover:bg-gray-200 transition-colors">
-                                {/* Profile Image */}
-                                <button onClick={() => openModal(user)} className="flex flex-col items-center justify-center">
+                            <div
+                                key={index}
+                                className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-700 text-white mb-4 hover:bg-gray-200 transition-colors"
+                            >
+                                <div className="flex flex-col items-center">
                                     <img
-                                        src={user.img || 'https://joybox.uz/wp-content/uploads/default-user.png'}
-                                        alt="Profile"
-                                        className="w-14 h-14 rounded-full object-cover"
+                                        src={user.image && isValidImageUrl(user.image) ? user.image : User}
+                                        alt={user.name}
+                                        className="w-16 h-16 rounded-full border-4 border-indigo-600 bg-slate-50 object-cover bg-transparent"
                                     />
-                                </button>
-                                {/* Name */}
+                                </div>
                                 <button onClick={() => openModal(user)} className="flex flex-col items-center justify-center">
-                                    <p className="text-center text-sm">{user.name} {user.surname}</p>
+                                    <p className="text-center text-sm">{user.name || 'Noma\'lum'}</p>
                                 </button>
-                                {/* Faculty */}
                                 <button onClick={() => openModal(user)} className="flex flex-col items-center justify-center">
-                                    <p className="text-center text-sm">{user.faculty}</p>
+                                    <p className="text-center text-sm">
+                                        {user.faculty?.faculty_name || 'Noma\'lum'}
+                                    </p>
                                 </button>
-                                {/* Course */}
                                 <button onClick={() => openModal(user)} className="flex flex-col items-center justify-center">
-                                    <p className="text-center text-sm">{user.course || 'Ma\'lumot mavjud emas'}</p>
+                                    <p className="text-center text-sm">
+                                        {user.grade?.grade_name || 'Noma\'lum'}
+                                    </p>
                                 </button>
-                                {/* Coins */}
                                 <button onClick={() => openModal(user)} className="flex flex-col items-center justify-center">
-                                    <p className="text-center text-sm">{user.tokens.length > 0 ? user.tokens[0].quantity : 0} Coin</p>
+                                    <p className="text-center text-sm">{user.inactive_tokens || 0} Coin</p>
                                 </button>
                             </div>
                         ))
@@ -105,11 +110,10 @@ const Reyting = () => {
                 </div>
             </div>
 
-            {/* Modal for user details */}
             <Modal
                 isOpen={modalIsOpen}
                 onRequestClose={closeModal}
-                className="p-6 rounded-3xl shadow-2xl max-w-lg mx-auto mt-10 bg-white"
+                className="p-6 rounded-3xl shadow-2xl w-[35%] mx-auto mt-10 bg-white"
                 overlayClassName="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center"
                 contentLabel="Foydalanuvchi Ma'lumotlari"
             >
@@ -117,38 +121,21 @@ const Reyting = () => {
                     <div className="space-y-3">
                         <div>
                             <h2 className="text-xl font-semibold text-indigo-600">
-                                {selectedUser.name} {selectedUser.surname}
+                                {selectedUser.name || 'Ma\'lumot mavjud emas'}
                             </h2>
                             <p className="text-gray-500 text-sm">
-                                Umumiy Coini: {selectedUser.tokens.length > 0 ? selectedUser.tokens[0].quantity : 0}
+                                Fakultet nomi: {selectedUser.faculty?.faculty_name || 'Ma\'lumot mavjud emas'}
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                                Umumiy Coini: {selectedUser.inactive_tokens || '0'}
                             </p>
                         </div>
-
-
-
-                        <div>
-                            <h3 className="text-lg font-semibold text-indigo-600">Coin Tarixi:</h3>
-                            <ul className="list-disc pl-6">
-                                {selectedUser.tokens && selectedUser.tokens.length > 0 ? (
-                                    selectedUser.tokens.map((item, idx) => (
-                                        <><li key={idx} className="text-gray-600 text-sm">
-                                            Token ID: {item._id}
-                                        </li>
-                                            <li key={idx} className="text-gray-600 text-sm">
-                                                Miqdor: {item.quantity}
-                                            </li></>
-                                    ))
-                                ) : (
-                                    <li className="text-gray-500 text-sm">Ma'lumot mavjud emas</li>
-                                )}
-                            </ul>
-                        </div>
-
-                        <div>
-                            <button onClick={closeModal} className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg">
-                                Yopish
-                            </button>
-                        </div>
+                        <button
+                            onClick={closeModal}
+                            className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg"
+                        >
+                            Yopish
+                        </button>
                     </div>
                 )}
             </Modal>

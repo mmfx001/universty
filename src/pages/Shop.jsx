@@ -15,7 +15,7 @@ function Card({ children, className }) {
 // Компонент skeleton-загрузки
 function SkeletonCard() {
   return (
-    <div className="w-full overflow-hidden rounded-lg border bg-gray-100 shadow-md animate-pulse">
+    <div className="w-full overflow-hidden rounded-lg border bg-indigo-50 shadow-md animate-pulse">
       <div className="h-40 sm:h-48 bg-gray-200"></div>
       <div className="p-4 space-y-3">
         <div className="h-5 bg-gray-300 rounded"></div>
@@ -126,8 +126,8 @@ export default function Shop() {
 
 
   return (
-    <div className="min-h-screen pb-24 md:pb-6">
-      <div className="sticky top-0 bg-white z-10 shadow-md">
+    <div className="min-h-screen pb-24 md:pb-6 bg-indigo-50">
+      <div className="sticky top-0 bg-indigo-50 z-10 shadow-md">
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
           <div className="text-base md:text-lg lg:text-xl ml-[50px] font-bold text-[#4A66D3]">Shop</div>
           <div className="flex items-center gap-7 md:gap-4 lg:gap-6">

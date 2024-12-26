@@ -10,12 +10,35 @@ const Login = () => {
     const navigate = useNavigate();
     const formRef = useRef(null);
 
-
+    useEffect(() => {
+        const hasVisited = localStorage.getItem('hasVisited');
+        if (!hasVisited) {
+            alert(
+                "Bu web siteda ba'zi xatolar va kechikishlar mavjud! Biror xato topsangiz, shu chatApp ning o'zidan barcha usersdan qidirib (_sherbek_off) ga yozing."
+            );
+            localStorage.setItem('hasVisited', 'true');
+        }
+    }, []);
 
     const clearMessage = () => {
         setTimeout(() => {
             setMessage('');
         }, 5000);
+    };
+
+    const fetchUserInfo = async (accessToken) => {
+        try {
+            const response = await axios.get('http://37.140.216.178/api/v1/users/userinfo/', {
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`,
+                },
+            });
+            if (response.status === 200) {
+                localStorage.setItem('loggedInUser', JSON.stringify(response.data[0]));
+            }
+        } catch (error) {
+            console.error('User info olishda xatolik:', error);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -34,9 +57,8 @@ const Login = () => {
                 localStorage.setItem('accessToken', access_token);
                 localStorage.setItem('refreshToken', refresh_token);
 
-                // Foydalanuvchi ma'lumotlarini konsolga chiqarish
-                console.log('Foydalanuvchi Ma\'lumotlari:', userData);
-                localStorage.setItem('loggedInUser', JSON.stringify(userData));
+                // Foydalanuvchi ma'lumotlarini olish
+                await fetchUserInfo(access_token);
 
                 // Foydalanuvchini bosh sahifaga yo'naltirish
                 navigate('/home');
@@ -59,6 +81,8 @@ const Login = () => {
         navigate('/home');
     };
 
+
+
     return (
         <div ref={formRef} className="flex items-center justify-center min-h-screen bg-gray-100">
             <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
@@ -78,13 +102,11 @@ const Login = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                    autocomplete="current-password" 
                 />
                 {message && (
                     <p
-                        className={`block mb-4 ${
-                            message.includes('muvaffaqiyatli') ? 'text-green-500' : 'text-red-500'
-                        }`}
+                        className={`block mb-4 ${message.includes('muvaffaqiyatli') ? 'text-green-500' : 'text-red-500'
+                            }`}
                     >
                         {message}
                     </p>

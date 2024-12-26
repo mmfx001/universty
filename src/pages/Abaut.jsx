@@ -50,7 +50,7 @@ const About = () => {
     };
 
     return (
-        <div className="p-6 bg-gradient-to-b from-indigo-50 to-white min-h-screen font-rubik">
+        <div className="p-6 bg-indigo-50 min-h-screen font-rubik">
             {/* Heading Animation */}
             <motion.h1
                 className="text-4xl sm:text-3xl font-extrabold text-indigo-800 mb-6 text-center"
