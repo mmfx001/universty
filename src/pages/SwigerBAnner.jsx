@@ -43,7 +43,7 @@ const SwipperBanner = () => {
   const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? banners.length - 1 : prev - 1));
 
   return (
-    <div className="relative w-full h-[50vh] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl overflow-hidden shadow-xl">
+    <div className="relative w-full h-[50vh] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl overflow-hidden shadow-xl">
       {loading ? (
         <div className="w-full h-full bg-gray-300 animate-pulse rounded-3xl"></div>
       ) : error ? (

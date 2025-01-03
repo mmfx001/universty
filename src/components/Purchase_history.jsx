@@ -82,7 +82,7 @@ const PurchaseHistory = () => {
         <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
           <Link to='/shop' className="text-indigo-600 font-semibold ml-10 flex items-center hover:text-indigo-800 transition-colors duration-300">
             <ArrowLeft className="mr-2 h-5 w-5" />
-            <span className="text-lg">Magazinga qaytish</span>
+            <span className="text-lg">back</span>
           </Link>
         </div>
       </div>
@@ -119,7 +119,7 @@ const PurchaseHistory = () => {
                     </div>
 
                     <div className="text-sm text-gray-500">
-                      Код покупки <span className="text-gray-900 font-medium">{purchase.shop_code}</span>
+                      code product <span className="text-gray-900 font-medium">{purchase.shop_code}</span>
                     </div>
 
                     <div className="flex items-center justify-center text-sm text-gray-500 gap-1.5">
@@ -145,7 +145,7 @@ const PurchaseHistory = () => {
           <div className="bg-white p-8 rounded-xl max-w-md w-[90%] shadow-2xl">
             <h2 className="text-2xl font-bold mb-4 text-indigo-600 flex items-center">
               <X className="mr-2 h-6 w-6" />
-              Подтверждение отмены
+              cancellation product
             </h2>
             <p className="mb-6 text-gray-600">Вы действительно хотите отменить эту покупку?</p>
             <div className="mb-6">

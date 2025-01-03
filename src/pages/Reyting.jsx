@@ -67,7 +67,7 @@ const Reyting = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-indigo-50">
-            <p className="text-3xl font-bold text-center text-indigo-600 mt-10"></p>
+            <p className="text-3xl font-bold text-center text-indigo-600 mt-5"></p>
 
             <div className="overflow-x-auto mt-6 px-6 w-[100%] mx-auto">
                 <div>
@@ -79,11 +79,11 @@ const Reyting = () => {
                         users.map((user, index) => (
                             <div
                                 key={index}
-                                className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-700 text-white mb-4 hover:bg-gray-200 transition-colors"
+                                className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4 rounded-2xl bg-gradient-to-b from-indigo-500 to-indigo-700 text-white mb-4 hover:bg-gray-200 transition-colors"
                             >
                                 <div className="flex flex-col items-center">
                                     <img
-                                        src={user.image && isValidImageUrl(user.image) ? user.image : User}
+                                        src={`http://37.140.216.178${user.image|| "https://via.placeholder.com/120"}`}
                                         alt={user.name}
                                         className="w-16 h-16 rounded-full border-4 border-indigo-600 bg-slate-50 object-cover bg-transparent"
                                     />

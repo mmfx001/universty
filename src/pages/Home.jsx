@@ -6,10 +6,12 @@ import axios from 'axios'
 import "slick-carousel/slick/slick.css"
 import "slick-carousel/slick/slick-theme.css"
 import SwipperBanner from './SwigerBAnner'
+import Reyting from './Reyting'
 
 function Home() {
   const [news, setNews] = useState([])
   const [users, setUsers] = useState([])
+  const [userData, setUserData] = useState([])
   const [filteredUsers, setFilteredUsers] = useState([]) // Filtered users
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('') // Search input
@@ -20,6 +22,22 @@ function Home() {
   const accessToken = localStorage.getItem('accessToken')
   const [isEventModalOpen, setIsEventModalOpen] = useState(false) // Event modal
   const [selectedEvent, setSelectedEvent] = useState(null) // Selected event
+    useEffect(() => {
+    const fetchUserInfo = async () => {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) return;
+
+      try {
+        const response = await axios.get("http://37.140.216.178/api/v1/users/userinfo/", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setUserData(Array.isArray(response.data) ? response.data[0] : response.data);
+      } catch (error) {
+      }
+    };
+    fetchUserInfo();
+  }, []);
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -98,27 +116,6 @@ function Home() {
 
   }
 
-  useEffect(() => {
-    const fetchUserRating = async () => {
-      try {
-        const response = await axios.get('http://37.140.216.178/api/v1/events/dashboardtopusers/', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-
-        const usersData = response.data.slice(0, 10)
-        setUsers(usersData)
-        setFilteredUsers(usersData)
-      } catch (error) {
-        console.error('Error fetching user ratings:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUserRating()
-  }, [])
 
 
 
@@ -184,7 +181,7 @@ function Home() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br bg-indigo-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <header className="flex sm:flex-row justify-between items-center mb-12 gap-5 space-y-0 sm:space-x-4">
@@ -202,7 +199,7 @@ function Home() {
 
           {/* Token Display */}
           <div className="bg-indigo-600 text-white rounded-full flex items-center gap-2 py-3 px-5 font-semibold cursor-pointer hover:bg-indigo-700 transition duration-300 shadow-md">
-            <span>{loggedInUser.active_tokens}</span>
+            <span>{userData.active_tokens}</span>
             <Coins size={18} />
           </div>
         </header>
@@ -211,47 +208,50 @@ function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-8 flex flex-col gap-12">
             {/* News Slider */}
-          <SwipperBanner/>
+            <SwipperBanner />
 
 
 
             {/* Events Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 ">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
               {Events.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden transition-transform transform hover:scale-105"
+                  className="relative bg-gray-100 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105"
                 >
-                  {event.img ? (
+                  {/* Event Image */}
+                  <img
+                    src={
+                      event.img && event.img.trim()
+                        ? event.img
+                        : "https://media.istockphoto.com/id/1396814518/vector/image-coming-soon-no-photo-no-thumbnail-image-available-vector-illustration.jpg?s=612x612&w=0&k=20&c=hnh2OZgQGhf0b46-J2z7aHbIWwq8HNlSDaNp2wn_iko="
+                    }
+                    alt={event.title || "Event Image"}
+                    className="w-full h-52 object-cover"
+                  />
+
+                  {/* Club Logo and Name */}
+                  <div className="absolute top-2 left-2 flex items-center bg-black bg-opacity-50 text-white rounded-lg px-2 py-1">
                     <img
-                      src={event.img}
-                      alt={event.title}
-                      className="w-full h-48 object-cover"
+                      src={event.club_id.logo}
+                      alt={event.club_id.name}
+                      className="w-8 h-8 rounded-full border-2 border-white"
                     />
-                  ) : (
-                    null
-                  )}
+                    <p className="ml-2 text-sm font-medium">{event.club_id.name}</p>
+                  </div>
+
+                  {/* Event Details */}
                   <div className="p-4">
-                    <h4 className="text-xl font-semibold text-gray-800">{event.title}</h4>
-                    <p className="text-gray-600 text-sm">
+                    <h4 className="text-lg font-bold text-gray-900 truncate">{event.title}</h4>
+                    <p className="text-sm text-gray-600 mt-2">
                       Deadline: {new Date(event.deadline).toLocaleString()}
                     </p>
-                    <div className="flex items-center mt-3">
-                      <img
-                        src={event.club_id.logo}
-                        alt={event.club_id.name}
-                        className="w-8 h-8 rounded-full border-2 border-indigo-500"
-                      />
-                      <p className="ml-3 text-indigo-600 font-medium">
-                        {event.club_id.name}
-                      </p>
-                    </div>
-                    <p className="mt-3 text-gray-700">
+                    <p className="mt-3 text-gray-800 text-sm">
                       Students Registered: {event.registrated_students_count}
                     </p>
                     <a
                       href={event.url || "#"}
-                      className="block mt-4 text-indigo-500 hover:underline"
+                      className="block mt-4 text-indigo-600 hover:underline"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -259,7 +259,7 @@ function Home() {
                     </a>
                     <button
                       onClick={() => handleRegisterClick(event)}
-                      className="w-full bg-indigo-500 text-white py-2 rounded-lg mt-3"
+                      className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-lg mt-4 transition-colors"
                     >
                       Register
                     </button>
@@ -267,6 +267,7 @@ function Home() {
                 </div>
               ))}
             </div>
+
           </div>
 
           {/* Event Modal */}
@@ -297,56 +298,8 @@ function Home() {
 
 
           {/* Users List */}
-          <div className="rounded-3xl">
-            {filteredUsers.map((user, index) => (
-              <div
-                key={index}
-                className="mb-4 p-4 border border-indigo-200 rounded-xl bg-white shadow-md hover:shadow-lg transition-shadow duration-300 ease-in-out"
-              >
-                {/* User Info */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <img
-                      src={user.image}
-                      alt={user.name}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-indigo-500"
-                    />
-                    <div className="ml-4">
-                      <h4 className="text-lg font-bold text-gray-800">{user.name}</h4>
-                      <p className="text-xs text-gray-600">
-                        {user.faculty?.faculty_name || "N/A"} |{" "}
-                        {user.grade?.grade_name || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-yellow-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <p className="text-base font-bold text-gray-800">
-                      {user.token_count}
-                    </p>
-                  </div>
-                  <button
-                    className="bg-indigo-500 text-white px-4 py-2 rounded-full text-sm hover:bg-indigo-600 transition duration-200"
-                    onClick={() => openModal(user)}
-                  >
-                    View
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className='-mt-10'>
+            <Reyting />
           </div>
         </div>
 

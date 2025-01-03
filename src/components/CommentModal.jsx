@@ -17,7 +17,7 @@ const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) {
-      setErrorMessage("Izoh matnini kiritishingiz kerak.");
+      setErrorMessage("You must enter a comment text.");
       return;
     }
 
@@ -42,8 +42,8 @@ const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit
       setEditingCommentId(null);
       setErrorMessage("");
     } catch (error) {
-      console.error("Izoh yuborishda xatolik yuz berdi:", error);
-      setErrorMessage("Izoh yuborishda xatolik yuz berdi.");
+      console.error("Errer set comment", error);
+      setErrorMessage("Error set commnet.");
     }
   };
 
@@ -59,8 +59,7 @@ const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit
       });
       onCommentSubmit(allComments.filter((comment) => comment.id !== commentId));
     } catch (error) {
-      console.error("Izohni o'chirishda xatolik yuz berdi:", error);
-      setErrorMessage("Izohni o'chirishda xatolik yuz berdi.");
+      setErrorMessage("error comment delete!");
     }
   };
 
@@ -80,10 +79,10 @@ const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit
         >
           <XMarkIcon className="h-6 w-6" />
         </button>
-        <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Izohlar</h2>
+        <h2 className="text-xl font-semibold mb-4 text-center text-gray-800">Comments</h2>
         <div className="overflow-y-auto max-h-60 mb-4 space-y-4">
           {filteredComments.length === 0 ? (
-            <p className="text-gray-500 text-center">Hozircha izohlar yo'q.</p>
+            <p className="text-gray-500 text-center">No comments</p>
           ) : (
             filteredComments.map((comment) => (
               <div key={comment.id} className="flex justify-between items-start border-b pb-2">
@@ -115,8 +114,8 @@ const CommentModal = ({ isOpen, onClose, allComments, productId, onCommentSubmit
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           onKeyDown={handleKeyPress}
-          className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 mb-2"
-          placeholder="Izoh qo'shing yoki tahrirlang..."
+          className="w-full border p-2 rounded mb-2"
+          placeholder="comment..."
           rows={3}
         />
         {errorMessage && <p className="text-red-500 text-sm mb-2">{errorMessage}</p>}

@@ -205,7 +205,7 @@ const Posts = () => {
                     <img
                       src={post.images[0]?.image}
                       alt={post.title || 'Post image'}
-                      className="w-full h-[400px] object-cover rounded-md mb-4"
+                      className="w-full h-auto object-cover rounded-md mb-4"
                     />
                   )}
 
